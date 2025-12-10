@@ -28,7 +28,7 @@ module Mongo
         #
         # @since 2.0.0
         def initialize(file)
-          @test = YAML.load(ERB.new(File.new(file).read).result)
+          @test = YAML.load(ERB.new(File.new(file).read).result, aliases: true)
           @description = "avg_rtt_ms: #{@test['avg_rtt_ms']}, new_rtt_ms: #{@test['new_rtt_ms']}," +
                            " new_avg_rtt: #{@test['new_avg_rtt']}"
           @avg_rtt_ms = @test['avg_rtt_ms'] == 'NULL' ? nil : @test['avg_rtt_ms'].to_f
