@@ -82,7 +82,16 @@ module Mongo
     #
     # @since 2.3.0
     def self.finalize(cursor_id, cluster, op_spec, server)
-      proc { cluster.schedule_kill_cursor(cursor_id, op_spec, server) }
+      proc do
+        begin
+          cluster.schedule_kill_cursor(cursor_id, op_spec, server) if cluster && op_spec && server
+        rescue ThreadError, SystemCallError, StandardError
+          # Ruby 3.4+ doesn't allow mutex operations in trap context (finalizers)
+          # Silently suppress all errors during finalization to prevent cascading failures
+          # Cursor cleanup will happen via reaper thread when it runs normally
+          nil
+        end
+      end
     end
 
     # Get a human-readable string representation of +Cursor+.

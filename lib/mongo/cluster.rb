@@ -196,10 +196,18 @@ module Mongo
     # @since 2.2.0
     def self.finalize(pools, cursor_reaper)
       proc do
-        begin; cursor_reaper.kill_cursors; rescue; end
-        cursor_reaper.stop!
-        pools.values.each do |pool|
-          pool.disconnect!
+        begin
+          begin; cursor_reaper.kill_cursors; rescue; end
+          cursor_reaper.stop!
+          pools.values.each do |pool|
+            begin
+              pool.disconnect!
+            rescue ThreadError, SystemCallError, StandardError
+              # Suppress errors in finalizer (trap context)
+            end
+          end
+        rescue ThreadError, SystemCallError, StandardError
+          # Last resort rescue for finalizer
         end
       end
     end

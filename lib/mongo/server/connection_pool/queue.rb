@@ -72,9 +72,15 @@ module Mongo
         #
         # @since 2.1.0
         def disconnect!
-          mutex.synchronize do
-            queue.each{ |connection| connection.disconnect! }
-            true
+          begin
+            mutex.synchronize do
+              queue.each{ |connection| connection.disconnect! }
+              true
+            end
+          rescue ThreadError, SystemCallError, StandardError
+            # Ruby 3.4+ doesn't allow mutex operations in trap context (finalizers)
+            # Silently suppress errors during finalization
+            nil
           end
         end
 

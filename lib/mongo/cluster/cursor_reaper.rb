@@ -71,11 +71,20 @@ module Mongo
       #
       # @since 2.3.0
       def schedule_kill_cursor(id, op_spec, server)
-        @mutex.synchronize do
-          if @active_cursors.include?(id)
-            @to_kill[server] ||= Set.new
-            @to_kill[server] << op_spec
+        return unless id && id > 0 && op_spec && server
+
+        begin
+          @mutex.synchronize do
+            if @active_cursors.include?(id)
+              @to_kill[server] ||= Set.new
+              @to_kill[server] << op_spec
+            end
           end
+        rescue ThreadError, SystemCallError, StandardError => e
+          # Ruby 3.4+ doesn't allow mutex operations in trap context (finalizers)
+          # Silently suppress all errors during finalization to prevent cascading failures
+          # The cursor will be cleaned up by the reaper thread when it runs normally
+          nil
         end
       end
 
